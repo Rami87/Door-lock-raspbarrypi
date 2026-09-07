@@ -6,7 +6,9 @@ import cv2
 
 MODEL_PATH = os.path.join(os.path.dirname(__file__), "trainer.yml")
 LABELS_PATH = os.path.join(os.path.dirname(__file__), "labels.json")
-CASCADE_PATH = cv2.data.haarcascades + "haarcascade_frontalface_default.xml"
+# Bundled here rather than loaded from cv2.data.haarcascades: some
+# opencv-contrib-python builds don't actually ship that data file.
+CASCADE_PATH = os.path.join(os.path.dirname(__file__), "haarcascade_frontalface_default.xml")
 
 # LBPH confidence is a distance: lower means a closer match. Anything below
 # this is treated as a recognized, authorized face.

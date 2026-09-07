@@ -9,7 +9,9 @@ import sys
 import cv2
 
 DATASET_DIR = os.path.join(os.path.dirname(__file__), "dataset")
-CASCADE_PATH = cv2.data.haarcascades + "haarcascade_frontalface_default.xml"
+# Bundled here rather than loaded from cv2.data.haarcascades: some
+# opencv-contrib-python builds don't actually ship that data file.
+CASCADE_PATH = os.path.join(os.path.dirname(__file__), "haarcascade_frontalface_default.xml")
 
 
 def capture(name, num_samples=30, camera_index=0):
