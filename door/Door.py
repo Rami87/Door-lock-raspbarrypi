@@ -1,5 +1,6 @@
-import RPi.GPIO as GPIO
 import time
+
+from tools.gpio_backend import GPIO, SIMULATED
 
 
 class Door:
@@ -10,6 +11,9 @@ class Door:
 
         GPIO.setmode(GPIO.BOARD)
         GPIO.setwarnings(False)
+
+        if SIMULATED:
+            print("[door] no RPi.GPIO found - running in simulation mode (console only)")
 
     def openn(self, door_port, light_port_yes, light_port_no):
         self.toogle(light_port_no, False)
@@ -33,9 +37,11 @@ class Door:
             GPIO.output(port, GPIO.LOW)
 
     def open_door(self):
+        print("[door] OPEN")
         self.openn(self.port_door, self.port_led_yes, self.port_led_no)
 
     def close_door(self):
+        print("[door] CLOSE")
         self.closee(self.port_door, self.port_led_yes, self.port_led_no)
 
     def cleanup(self):

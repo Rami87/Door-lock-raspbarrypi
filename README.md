@@ -120,3 +120,26 @@ disables itself — the keypad keeps working on its own.
 python3 main.py            # the door controller (needs to run on the Pi with GPIO/camera)
 python3 webapp/app.py      # dashboard at http://<pi-ip>:5000, reads data/access_log.jsonl
 ```
+
+## Testing without a Pi
+
+`main.py` works on a regular computer too, no Pi required:
+
+- `tools/gpio_backend.py` imports `RPi.GPIO` when it's available and falls
+  back to a no-op mock (`tools/mock_gpio.py`) otherwise.
+- With the mock active, `Door.py` just prints `[door] OPEN` / `[door] CLOSE`
+  instead of driving pins, and `keypad.py` reads your PIN from the terminal
+  (`Simulated keypad - type a PIN and press Enter:`) instead of scanning a
+  physical matrix.
+- Face recognition needs no mocking at all — `checker/face/` only depends on
+  OpenCV and a camera, so `dataset_capture.py` / `train.py` / `main.py`
+  already use your laptop's webcam if you run `pip install -r
+  requirements.txt` locally.
+- `webapp/app.py` only reads `data/access_log.jsonl`, so the dashboard runs
+  and shows real events from the simulated run above with no hardware at all.
+
+So on a laptop: `pip install -r requirements.txt`, run `python3 main.py` in
+one terminal (type PINs when prompted, show your face to the webcam if you
+trained a model), `python3 webapp/app.py` in another, and watch
+`http://localhost:5000` update. Swap to real GPIO simply by running the same
+code on the Pi — nothing to change.

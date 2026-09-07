@@ -1,10 +1,17 @@
-import RPi.GPIO as GPIO
 import time
+
+from tools.gpio_backend import GPIO, SIMULATED
 
 
 class Keypad:
     def __init__(self):
         self.data = []
+        self._sim_buffer = []
+
+        if SIMULATED:
+            print("[keypad] no RPi.GPIO found - type your PIN on the console instead")
+            return
+
         GPIO.setmode(GPIO.BOARD)
         GPIO.setwarnings(False)
 
@@ -26,6 +33,9 @@ class Keypad:
             GPIO.setup(self.ROW[i], GPIO.IN, pull_up_down=GPIO.PUD_UP)
 
     def read(self):
+        if SIMULATED:
+            return self._read_simulated()
+
         try:
             val = None
             while (val is None):
@@ -42,6 +52,12 @@ class Keypad:
             return val
         except KeyboardInterrupt:
             GPIO.cleanup()
+
+    def _read_simulated(self):
+        if not self._sim_buffer:
+            line = input("Simulated keypad - type a PIN and press Enter: ")
+            self._sim_buffer = list(line.strip()) + ["#"]
+        return self._sim_buffer.pop(0)
 
 def test():
     keypad = Keypad()
