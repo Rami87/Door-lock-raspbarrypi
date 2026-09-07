@@ -99,3 +99,11 @@ ENV/
 
 # mypy
 .mypy_cache/
+
+# Face recognition training data / model (personal biometric data, per-device)
+checker/face/dataset/
+checker/face/trainer.yml
+checker/face/labels.json
+
+# Runtime access log
+data/

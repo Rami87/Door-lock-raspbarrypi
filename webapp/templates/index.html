@@ -1,0 +1,186 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Door Lock Dashboard</title>
+<style>
+  :root {
+    --bg: #0f1420;
+    --panel: #171e2e;
+    --panel-border: #262f45;
+    --text: #e7ecf7;
+    --muted: #8b96ad;
+    --accent: #4f8cff;
+    --good: #33c17a;
+    --bad: #ef5b6b;
+    --entry: #4f8cff;
+    --exit: #b98ef5;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    padding: 24px;
+  }
+  h1 { font-size: 20px; margin: 0 0 4px; }
+  .sub { color: var(--muted); font-size: 13px; margin-bottom: 24px; }
+  .cards {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+    gap: 14px;
+    margin-bottom: 24px;
+  }
+  .card {
+    background: var(--panel);
+    border: 1px solid var(--panel-border);
+    border-radius: 10px;
+    padding: 16px;
+  }
+  .card .num { font-size: 26px; font-weight: 700; }
+  .card .label { color: var(--muted); font-size: 12px; text-transform: uppercase; letter-spacing: .04em; margin-top: 4px; }
+  .card.good .num { color: var(--good); }
+  .card.bad .num { color: var(--bad); }
+  .panel {
+    background: var(--panel);
+    border: 1px solid var(--panel-border);
+    border-radius: 10px;
+    overflow: hidden;
+  }
+  .panel-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 14px 16px;
+    border-bottom: 1px solid var(--panel-border);
+  }
+  .panel-header h2 { font-size: 14px; margin: 0; }
+  select, input {
+    background: #0f1420;
+    color: var(--text);
+    border: 1px solid var(--panel-border);
+    border-radius: 6px;
+    padding: 6px 8px;
+    font-size: 13px;
+  }
+  table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  th, td { text-align: left; padding: 10px 16px; border-bottom: 1px solid var(--panel-border); }
+  th { color: var(--muted); font-weight: 600; font-size: 11px; text-transform: uppercase; letter-spacing: .04em; }
+  tr:last-child td { border-bottom: none; }
+  .badge {
+    display: inline-block;
+    padding: 2px 8px;
+    border-radius: 999px;
+    font-size: 11px;
+    font-weight: 600;
+  }
+  .badge.granted { background: rgba(51,193,122,.15); color: var(--good); }
+  .badge.denied { background: rgba(239,91,107,.15); color: var(--bad); }
+  .badge.entry { background: rgba(79,140,255,.15); color: var(--entry); }
+  .badge.exit { background: rgba(185,142,245,.15); color: var(--exit); }
+  .empty { padding: 32px; text-align: center; color: var(--muted); }
+  .toolbar { display: flex; gap: 8px; }
+</style>
+</head>
+<body>
+  <h1>Door Lock Dashboard</h1>
+  <div class="sub">Live access log &mdash; auto-refreshes every 3s</div>
+
+  <div class="cards">
+    <div class="card good"><div class="num" id="stat-granted">-</div><div class="label">Access granted</div></div>
+    <div class="card bad"><div class="num" id="stat-denied">-</div><div class="label">Access denied</div></div>
+    <div class="card"><div class="num" id="stat-entries">-</div><div class="label">Entries (door opened)</div></div>
+    <div class="card"><div class="num" id="stat-exits">-</div><div class="label">Exits (door closed)</div></div>
+  </div>
+
+  <div class="panel">
+    <div class="panel-header">
+      <h2>Recent activity</h2>
+      <div class="toolbar">
+        <select id="filter-event">
+          <option value="">All events</option>
+          <option value="access_granted">Access granted</option>
+          <option value="access_denied">Access denied</option>
+          <option value="door_open">Entry</option>
+          <option value="door_close">Exit</option>
+        </select>
+        <select id="filter-method">
+          <option value="">All methods</option>
+          <option value="keypad">Keypad</option>
+          <option value="face">Face</option>
+          <option value="rfid">RFID</option>
+        </select>
+      </div>
+    </div>
+    <table id="events-table">
+      <thead>
+        <tr><th>Time</th><th>Event</th><th>Method</th><th>Identity</th></tr>
+      </thead>
+      <tbody id="events-body"></tbody>
+    </table>
+    <div class="empty" id="empty-state" hidden>No matching events yet.</div>
+  </div>
+
+<script>
+const EVENT_LABELS = {
+  access_granted: {text: "Granted", cls: "granted"},
+  access_denied: {text: "Denied", cls: "denied"},
+  door_open: {text: "Entry", cls: "entry"},
+  door_close: {text: "Exit", cls: "exit"},
+};
+
+function fmtTime(ts) {
+  return new Date(ts * 1000).toLocaleString();
+}
+
+async function refresh() {
+  const [events, stats] = await Promise.all([
+    fetch("/api/events").then(r => r.json()),
+    fetch("/api/stats").then(r => r.json()),
+  ]);
+
+  document.getElementById("stat-granted").textContent = stats.total_granted;
+  document.getElementById("stat-denied").textContent = stats.total_denied;
+  document.getElementById("stat-entries").textContent = stats.entries;
+  document.getElementById("stat-exits").textContent = stats.exits;
+
+  const eventFilter = document.getElementById("filter-event").value;
+  const methodFilter = document.getElementById("filter-method").value;
+
+  const filtered = events.filter(e =>
+    (!eventFilter || e.event === eventFilter) &&
+    (!methodFilter || e.method === methodFilter)
+  );
+
+  const body = document.getElementById("events-body");
+  const emptyState = document.getElementById("empty-state");
+  body.innerHTML = "";
+
+  if (filtered.length === 0) {
+    emptyState.hidden = false;
+  } else {
+    emptyState.hidden = true;
+    for (const e of filtered) {
+      const label = EVENT_LABELS[e.event] || {text: e.event, cls: ""};
+      const tr = document.createElement("tr");
+      tr.innerHTML = `
+        <td>${fmtTime(e.timestamp)}</td>
+        <td><span class="badge ${label.cls}">${label.text}</span></td>
+        <td>${e.method || "-"}</td>
+        <td>${e.identity || "-"}</td>
+      `;
+      body.appendChild(tr);
+    }
+  }
+}
+
+document.getElementById("filter-event").addEventListener("change", refresh);
+document.getElementById("filter-method").addEventListener("change", refresh);
+
+refresh();
+setInterval(refresh, 3000);
+</script>
+</body>
+</html>

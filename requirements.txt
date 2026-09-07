@@ -1,1 +1,4 @@
 RPi.GPIO
+opencv-contrib-python
+numpy
+Flask
