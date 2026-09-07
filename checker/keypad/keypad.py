@@ -44,6 +44,10 @@ class Keypad:
             GPIO.cleanup()
 
 def test():
-    while(True):
-        keypad = Keypad()
+    keypad = Keypad()
+    while True:
         print(keypad.read())
+
+
+if __name__ == "__main__":
+    test()

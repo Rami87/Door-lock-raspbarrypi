@@ -38,8 +38,17 @@ class Door:
     def close_door(self):
         self.closee(self.port_door, self.port_led_yes, self.port_led_no)
 
+    def cleanup(self):
+        GPIO.cleanup()
+
 
 def test():
-    open_door()
+    door = Door()
+    door.open_door()
     time.sleep(3)
-    close_door()
+    door.close_door()
+    door.cleanup()
+
+
+if __name__ == "__main__":
+    test()
