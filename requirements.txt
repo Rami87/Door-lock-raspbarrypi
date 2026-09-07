@@ -1,4 +1,4 @@
-RPi.GPIO
+RPi.GPIO; platform_machine in "armv6l armv7l armv8l aarch64"
 opencv-contrib-python
 numpy
 Flask
